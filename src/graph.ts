@@ -6,8 +6,7 @@
  * Input:  IntentClassifierInput  (rawPrompt, sessionId?)
  * Output: IntentClassifierOutput (agentType, useCase, deploymentPreference, complexityScore, suggestedTier, confidence)
  *
- * TODO: implement nodes under src/nodes/ per PRD.md
- * TODO: import contracts from @kabuswe/graph-contracts once published
+ * Implementation tracked in GitHub issues — see repo Issues tab.
  */
 
 import { StateGraph, START, END, MemorySaver, StateSchema, UntrackedValue } from '@langchain/langgraph';
@@ -42,11 +41,10 @@ const IntentState = new StateSchema({
 
 const standardRetry = { maxAttempts: 3, initialInterval: 1000, backoffFactor: 2 };
 
-// TODO: replace stubs with real node imports
-const parseInputNode      = async (state: any) => ({ phase: 'parse-input', normalizedPrompt: state.rawPrompt, explicitSignals: [] });
-const classifyIntentNode  = async (state: any) => ({ phase: 'classify-intent', agentType: 'unknown', useCase: '', deploymentPreference: 'hybrid' as const });
-const resolveAgentTypeNode = async (state: any) => ({ phase: 'resolve-agent-type', graphPattern: 'ReAct', connectorRefs: [], dataSensitivity: 'low' as const });
-const scoreConfidenceNode  = async (state: any) => ({ phase: 'score-confidence', confidence: 0, requiresClarification: true, complexityScore: 0, suggestedTier: 'starter' as const });
+import { parseInputNode }       from './nodes/parseInput.js';
+import { classifyIntentNode }   from './nodes/classifyIntent.js';
+import { resolveAgentTypeNode } from './nodes/resolveAgentType.js';
+import { scoreConfidenceNode }  from './nodes/scoreConfidence.js';
 
 function assembleGraph(checkpointer?: MemorySaver) {
   const builder = new StateGraph(IntentState)
