@@ -1,56 +1,46 @@
 /**
- * tests/intent.test.ts — live integration test for graph-intent-classifier
- * Runs real LLM calls via OpenRouter.
+ * tests/intent.test.ts — vitest integration tests for graph-intent-classifier.
+ * Makes real LLM calls via OpenRouter — requires OPENROUTER_API_KEY in .env.
  */
 import "dotenv/config";
+import { describe, test, expect } from "vitest";
 import { graph } from "../src/graph.js";
 
-const TEST_CASES = [
-  {
-    name: "email agent",
-    input: { rawPrompt: "I need an agent that reads my Gmail inbox, classifies priority, and drafts replies" },
-    expectAgentType: "email",
-  },
-  {
-    name: "RAG document Q&A",
-    input: { rawPrompt: "Build a local knowledge base over our PDF documentation with Q&A" },
-    expectAgentType: "rag",
-  },
-  {
-    name: "web monitor",
-    input: { rawPrompt: "Monitor a competitors pricing page and alert me when prices change" },
-    expectAgentType: "monitor",
-  },
-  {
-    name: "journal enricher",
-    input: { rawPrompt: "Enrich my daily Markdown journal entries with theme extraction and mood scoring" },
-    expectAgentType: "journal",
-  },
-];
+describe("graph-intent-classifier", () => {
+  test("classifies email agent prompt", async () => {
+    const result = await graph.invoke(
+      { rawPrompt: "I need an agent that reads my Gmail inbox, classifies priority, and drafts replies" },
+      { configurable: { thread_id: `test-${Date.now()}` } },
+    );
+    expect(result.agentType).toBe("email");
+    expect(typeof result.confidence).toBe("number");
+    expect(result.confidence).toBeGreaterThan(0);
+    expect(result.suggestedTier).toMatch(/starter|pro|mission-critical/);
+  }, 45000);
 
-async function runTest(tc: (typeof TEST_CASES)[0]) {
-  const config = { configurable: { thread_id: `test-${Date.now()}` } };
-  const result = await graph.invoke(tc.input, config);
+  test("classifies RAG document Q&A prompt", async () => {
+    const result = await graph.invoke(
+      { rawPrompt: "Build a local knowledge base over our PDF documentation with Q&A" },
+      { configurable: { thread_id: `test-${Date.now()}` } },
+    );
+    expect(result.agentType).toBe("rag");
+    expect(result.deploymentPreference).toBe("local");
+  }, 45000);
 
-  const passed = result.agentType === tc.expectAgentType;
-  const icon = passed ? "✅" : "⚠️";
-  console.log(
-    `${icon} [${tc.name}] agentType=${result.agentType} (expected ${tc.expectAgentType}) ` +
-    `confidence=${result.confidence?.toFixed(2)} tier=${result.suggestedTier} ` +
-    `deployment=${result.deploymentPreference} complexity=${result.complexityScore?.toFixed(2)}`,
-  );
-  if (!passed) {
-    console.log(`   useCase: ${result.useCase}`);
-  }
-  return passed;
-}
+  test("classifies web monitor prompt", async () => {
+    const result = await graph.invoke(
+      { rawPrompt: "Monitor a competitors pricing page and alert me when prices change" },
+      { configurable: { thread_id: `test-${Date.now()}` } },
+    );
+    expect(result.agentType).toBe("monitor");
+  }, 45000);
 
-async function main() {
-  console.log("\n=== graph-intent-classifier integration tests ===\n");
-  const results = await Promise.all(TEST_CASES.map(runTest));
-  const passed = results.filter(Boolean).length;
-  console.log(`\n${passed}/${results.length} passed`);
-  if (passed < results.length) process.exit(1);
-}
-
-main().catch(err => { console.error(err); process.exit(1); });
+  test("classifies journal enricher prompt", async () => {
+    const result = await graph.invoke(
+      { rawPrompt: "Enrich my daily Markdown journal entries with theme extraction and mood scoring" },
+      { configurable: { thread_id: `test-${Date.now()}` } },
+    );
+    expect(result.agentType).toBe("journal");
+    expect(result.dataSensitivity).toBe("high");
+  }, 45000);
+});
